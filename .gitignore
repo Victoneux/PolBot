@@ -1,6 +1,6 @@
 token.code
-map/provinces/
-map/provinces.bmp
-map/definition.csv
+map/
 history/
 common/
+time.save
+
