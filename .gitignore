@@ -5,3 +5,5 @@ common/
 time.save
 input.bmp
 out.png
+__pycache__
+out.txt
