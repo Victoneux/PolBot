@@ -2,28 +2,31 @@ import PIL, common, os, math, random
 from copy import deepcopy
 from PIL import Image, ImageDraw, ImageFont
 
-def getProvinceDict(): # Returns a dictionary with the province ID being the key, and a list of coordinates of every pixel in the province is returned.
-    provinceDict = {}
+def getMapDict(): # Returns a dictionary with the region ID being the key, and a list of coordinates of every pixel in the region is returned.
+    regionDict = {}
     colorDict = {}
-    provinceLines = open("./map/definition.csv", "r").readlines()
-    for i in range(len(provinceLines)):
-        temp = provinceLines[i].strip().split(";")
-        r,g,b = int(temp[1]),int(temp[2]),int(temp[3])
-        colorDict[(r,g,b)] = i
+    directories = os.listdir("common/regions")
+    for directory in directories:
+        regions = os.listdir(f"common/regions/{directory}")
+        for region in regions:
+            rLines = open(f"common/regions/{directory}/{region}").readlines()
+            color = rLines[0].split(";")[0].strip().split(",")
+            color = (int(color[0].strip()),int(color[1].strip()),int(color[2].strip()))
+            colorDict[color] = f"{directory}/{region.split('.')[0].strip()}"
     
-    provinceMap = Image.open("./map/provinces.bmp")
-    imDat = provinceMap.load()
-    height, width = provinceMap.size
+    regionMap = Image.open("./map/map.bmp").convert("RGB")
+    imDat = regionMap.load()
+    width, height = regionMap.size
 
     for h in range(height):
         for w in range(width):
-            pR, pG, pB = imDat[h,w]
-            if (pR,pG,pB) != (0,0,0):
-                if colorDict[(pR,pG,pB)] not in provinceDict.keys():
-                    provinceDict[colorDict[(pR,pG,pB)]] = []
-                provinceDict[colorDict[(pR,pG,pB)]].append((h,w))
-    provinceMap.close()
-    return provinceDict
+            pR, pG, pB = imDat[w,h]
+            if (pR,pG,pB) != (0,0,0) and (pR,pG,pB) != (255,255,255):
+                if colorDict[(pR,pG,pB)] not in regionDict.keys():
+                    regionDict[colorDict[(pR,pG,pB)]] = []
+                regionDict[colorDict[(pR,pG,pB)]].append((w,h))
+    regionMap.close()
+    return regionDict
 
 def getColor(nation):
     nationLines = open("./common/nations/" + nation + ".txt", "r").readlines()
@@ -41,19 +44,11 @@ def drawNation(nation, h, w, pixelArray):
     heavyBorders = []
     regions = nation.regions
     for r in range(len(regions)):
-        pixels = []
-        pxlCount = 0 
         region = regions[r]
-        provs = region.provinces
-        for p in range(len(provs)):
-            prov = provs[p]
-            pxls = prov.pixels
-            for px in range(len(pxls)):
-                pixel = pxls[px]
-                pixels.append(pixel)
-                pixelArray[pixel[0]][pixel[1]] = (0,0,r)
-                pxlCount += 1
-        print("Region " + region.name + ": " + str(pxlCount) + " pixels")
+        pixels = region.pixels
+        for pixel in pixels:
+            pixelArray[pixel[0]][pixel[1]] = (0,0,r)
+        print(f"Region {region.name}: {str(len(pixels))} pixels")
         
         # LIGHT BORDERS GEN
         for px in range(len(pixels)):
@@ -106,12 +101,10 @@ def drawNation(nation, h, w, pixelArray):
 
     return lightBorders, heavyBorders
 
-def drawPolitical():
+def drawPolitical(addNames):
     print("DRAWING POLITICAL!")
-    provMap = Image.open("./map/provinces.bmp")
+    provMap = Image.open("./map/map.bmp")
     provDat = provMap.load()
-    capIcon = Image.open("./map/capitalstar.png")
-    cityIcon = Image.open("./map/citycircle.png")
     h,w = provMap.size
     pixelArray = []
     for _ in range(h):
@@ -133,12 +126,8 @@ def drawPolitical():
         for i in heavy:
             provDat[i[0],i[1]] = heavyBorderColor
     
-    for hx in range(h):
-        for wx in range(w):
-            if provDat[hx,wx] == (0,0,0):
-                provDat[hx,wx] = (61,109,189)
-    
     provMap.save("out.png")
+
     print("Done drawing political map!")
 
 def getProvinceFromPixel(pixel, provinceDict):

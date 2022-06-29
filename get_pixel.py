@@ -2,6 +2,8 @@ import numpy as np
 import cv2, common
 print(cv2.__version__)
 
+common.minimalInitialize()
+
 
 def show_pixel(event, x, y, flags, param): 
     global img

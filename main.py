@@ -1,4 +1,4 @@
-import common, get_pixel
+import common
 from common import *
 import mapping, random, discord, threading, os, timez
 from threading import Thread
@@ -15,38 +15,65 @@ bot = commands.Bot(command_prefix=".")
 print("Booted!")
 
 @bot.command()
-async def regions(ctx):
+async def regions(ctx, *args):
     regions = list(common.regionClassDict.keys())
-    str = ""
-    for r in range(len(regions)):
-        str += regions[r]
-        if r != len(regions)-1:
-            str += ", "
-    await ctx.channel.send("> " + str)
+    if len(args) < 1:
+        await ctx.channel.send("List regions of a nation. .regions (nation)")
+    else:
+        text = ""
+        for arg in args:
+            text += arg + " "
+        nation = text.lower().strip()
+        try:
+            nation = common.nationClassDict[nation]
+            regions = nation.regions
+            string = ""
+            for region in regions:
+                thing = region.name
+                string += "> " + thing + "\n"
+            await ctx.channel.send(string)
+        except Exception as e:
+            await ctx.channel.send("Failed to run.")
+            print(e)
 @bot.command()
 async def nations(ctx):
     nations = list(common.nationClassDict.keys())
-    str = ""
+    tempNationDict = {}
+    string = ""
     for r in range(len(nations)):
-        str += nations[r]
-        if r != len(nations)-1:
-            str += ", "
-    await ctx.channel.send("> " + str)
+        tempNationDict[nations[r]] = common.nationClassDict[nations[r]].area
+    thing = {key: val for key, val in sorted(tempNationDict.items(), key=lambda ele: ele[1], reverse = True)}
+    for gah in thing.keys():
+        string += "> " + gah + " - " + str(int(thing[gah])) + " km²\n"
+    await ctx.channel.send(string)
 
 @bot.command()
 async def nation(ctx, *args):
     if len(args) == 0:
         await ctx.channel.send("> Read a nation.")
     else:
+        text = ""
+        for arg in args:
+            text += arg.strip() + " "
         try:
-            await ctx.channel.send(embed=common.nationClassDict[args[0].lower().strip()].embed())
+            await ctx.channel.send(embed=common.nationClassDict[text.lower().strip()].embed())
         except:
-            await ctx.channel.send("Failed.")
+            await ctx.channel.send("Failed to run command.")
+
+@bot.command()
+async def region(ctx, *args):
+    if len(args) == 0:
+        await ctx.channel.send("> Read region info.")
+    else:
+        try:
+            await ctx.channel.send(embed=common.regionClassDict[args[0].lower().strip()].embed())
+        except:
+            await ctx.channel.send("Failed to run command.")
 
 @bot.command()
 async def area(ctx, *args):
     if len(args) == 0:
-        await ctx.channel.send("> Get the area of a region or nation. .area (region/nation) (name)")
+        await ctx.channel.send("> Get the area of a region or nation. .area [region (nation/region)]/[nation (nation)]")
     elif len(args) == 1:
         await ctx.channel.send(str(int(common.nationClassDict[args[0].strip().lower()].area)) + " km²")
     elif len(args) == 2:
@@ -55,10 +82,10 @@ async def area(ctx, *args):
         elif args[0].lower() == "nation":
             await ctx.channel.send(str(int(common.nationClassDict[args[1].strip().lower()].area)) + " km²")
         else:
-            await ctx.channel.send("Invalid")
+            await ctx.channel.send("Invalid syntax. area [region/nation] (name)")
 
 @bot.command()
-async def findAdjacencies(ctx):
+async def find_adjacencies(ctx):
     global mappingThread
     if str(ctx.message.author.id) == "742193269655601272":
         if mappingThread != None:
@@ -76,92 +103,35 @@ async def findAdjacencies(ctx):
         await ctx.channel.send("Usable by vic only.")
 
 @bot.command()
-async def generatepolmap(ctx):
+async def generatepolmap(ctx, *args):
+    addNames = False
+    if (len(args) > 0):
+        if args[0] == "names":
+            addNames = True
     global mappingThread
     if str(ctx.message.author.id) == "742193269655601272":
         if mappingThread != None:
             if not mappingThread.is_alive():
                 await ctx.channel.send("> Generating. Please note this may take a while. Additional \'heavy\' commands should not be run in the mean time.")
-                mappingThread = Thread(target=mapping.drawPolitical, args=())
+                mappingThread = Thread(target=mapping.drawPolitical, args=(addNames,))
                 mappingThread.start()
             else:
                 await ctx.channel.send("> There is an active thread. Please try again later!")
         else:
             await ctx.channel.send("> Generating. Please note this may take a while. Additional \'heavy\' commands should not be run in the mean time.")
-            mappingThread = Thread(target=mapping.drawPolitical, args=())
+            mappingThread = Thread(target=mapping.drawPolitical, args=(addNames,))
             mappingThread.start()
     else:
         await ctx.channel.send("> You are not our godly administrator! SHAME!")
 
 @bot.command()
-async def genREGIONS(ctx):
+async def reinitialize(ctx):
     if str(ctx.message.author.id) == "742193269655601272":
-        common.writeRandRegions()
+        await ctx.channel.send("Reinitializing. The bot will not function in the mean time.")
+        timez.saveTime()
+        common.initialize()
     else:
-        await ctx.channel.send("no")
-
-@bot.command()
-async def getMap(ctx, *args):
-    if len(args) <= 0:
-        await ctx.channel.send("> Fetches a specific type of map, optionally from a specific date. Format: .getMap (mapType) (date y/m/d)")
-    elif len(args) >= 1:
-        type = args[0].strip().lower()
-        if str(ctx.message.author.id) == "742193269655601272":
-            if len(args) == 1:
-                if type == "political":
-                    dir = os.listdir("./history/maps/political")
-                    dir.sort(key = lambda date: datetime.strptime(date, '%Y_%m_%d.png'))
-                    latest = dir[len(dir)-1]
-                    latestStr = latest.split(".")[0].split("_")
-                    latestStr = latestStr[0] + "/" + latestStr[1] + "/" + latestStr[2]
-                    await ctx.channel.send(file=discord.File("./history/maps/political/" + latest), content="> Political map, as of " + latestStr)
-                # elif type == "population":
-                #     dir = os.listdir("./history/maps/population")
-                #     dir.sort(key = lambda date: datetime.strptime(date, '%Y_%m_%d.png'))
-                #     latest = dir[len(dir)-1]
-                #     latestStr = latest.split(".")[0].split("_")
-                #     latestStr = latestStr[0] + "/" + latestStr[1] + "/" + latestStr[2]
-                #     await ctx.channel.send(file=discord.File("./history/maps/population/" + latest), content="> Population density map, as of " + latestStr)
-                else:
-                    await ctx.channel.send("> Unable to process.")
-            elif len(args) == 2:
-                dateToFind = datetime.strptime(args[1].strip(), "%Y/%m/%d")
-                if type == "political":
-                    dir = os.listdir("./history/maps/political")
-                    dir.sort(key = lambda date: datetime.strptime(date, '%Y_%m_%d.png'))
-                    dates = []
-                    for i in range(len(dir)):
-                        date = datetime.strptime(dir[i], "%Y_%m_%d.png")
-                        dates.append(date)
-                    matchingDate = dates[len(dates)-1]
-                    for i in range(len(dates)-1, 0, -1):
-                        if dateToFind < dates[i]:
-                            if i > 0:
-                                matchingDate = dates[i-1]
-                            else:
-                                matchingDate = dates[i]
-                    text = matchingDate.strftime("%Y/%m/%d")
-                    fileText = matchingDate.strftime("%Y_%m_%d" + ".png")
-                    await ctx.channel.send(file=discord.File("./history/maps/political/" + fileText), content="> Political map, as of " + text)
-                # elif type == "population":
-                #     dir = os.listdir("./history/maps/population")
-                #     dir.sort(key = lambda date: datetime.strptime(date, '%Y_%m_%d.png'))
-                #     dates = []
-                #     for i in range(len(dir)):
-                #         date = datetime.strptime(dir[i], "%Y_%m_%d.png")
-                #         dates.append(date)
-                #     matchingDate = dates[len(dates)-1]
-                #     for i in range(len(dates)-1, 0, -1):
-                #         if dateToFind < dates[i]:
-                #             if i > 0:
-                #                 matchingDate = dates[i-1]
-                #             else:
-                #                 matchingDate = dates[i]
-                #     text = matchingDate.strftime("%Y/%m/%d")
-                #     fileText = matchingDate.strftime("%Y_%m_%d" + ".png")
-                #     await ctx.channel.send(file=discord.File("./history/maps/population/" + fileText), content="> Political map, as of " + text)
-        else:
-            await ctx.channel.send("> You are not the admin, and cannot fetch the image. Please check <#920476735177379901>")
+        await ctx.channel.send("You can't do that. NO.")
 
 @bot.command()
 async def getarea(ctx, *args):
@@ -174,11 +144,6 @@ async def getarea(ctx, *args):
             await ctx.channel.send("Nation " + place + " has area " + str(int(mapping.calculateNationArea(place, common.provinceDict))) + " km²")
         elif action == "region":
             await ctx.channel.send("Region " + place + " has area " + str(int(mapping.calculateRegionArea(place, common.provinceDict))) + " km²")
-
-@bot.command()
-async def dothing(ctx):
-    if str(ctx.message.author.id) == "742193269655601272":
-        get_pixel.thing("./out.png")
 
 @bot.command()
 async def dice(ctx, *args):
@@ -229,6 +194,12 @@ async def rate(ctx, *args):
                 await ctx.channel.send("Failed to set rate.")
         else:
             await ctx.channel.send("You are not the godly admin!")
+
+@bot.command()
+async def random_nation(ctx):
+    nations = list(common.nationClassDict.keys())
+    nation = random.choice(nations)
+    await ctx.channel.send(nation)
 
 bot.run(TOKEN)
 timez.saveTime()
