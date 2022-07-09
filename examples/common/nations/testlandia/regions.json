@@ -1,0 +1,7 @@
+{
+    "test_reg_1": {
+        "short name": "Test Region 1",
+        "long name": "The municipality of Test Region 1",
+        "color": [170,180,190]
+    }
+}

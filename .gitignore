@@ -1,10 +1,7 @@
-token.code
-map/
-history/
-common/
-time.save
-input.bmp
-out.png
-out_scaled.png
+/token.code
+/map
+/history
+/common
+/time.save
+/input.bmp
 __pycache__
-out.txt
