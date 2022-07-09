@@ -70,23 +70,29 @@ async def planets(ctx):
             else:
                 string += f"> **{common.planet_dict[planet]['name']}** - {common.planet_dict[planet]['short description']}\n"
         if len(planets) == 0:
-            string += f"***{planet_count} total planets.***"
             do_loop = False
         await ctx.channel.send(string)
 
 
-# @bot.command()
-# async def nation(ctx, *args):
-#     if len(args) == 0:
-#         await ctx.channel.send("> Read a nation.")
-#     else:
-#         text = ""
-#         for arg in args:
-#             text += arg.strip() + " "
-#         try:
-#             await ctx.channel.send(embed=common.nationClassDict[text.lower().strip()].embed())
-#         except:
-#             await ctx.channel.send("Failed to run command.")
+@bot.command()
+async def nation(ctx, *args):
+    if len(args) == 0:
+        await ctx.channel.send("> Read a nation.")
+    else:
+        text = ""
+        for arg in args:
+            text += arg.strip() + " "
+        text = text.strip()
+        try:
+            the_embed = common.generate_nation_embed(text)
+            if common.nation_dict[text]["has flag"] == True:
+                flag = discord.File(f"./common/nations/{text}/flag.png", filename="flag.png")
+                the_embed.set_thumbnail(url="attachment://flag.png")
+                await ctx.channel.send(file=flag, embed=the_embed)
+            else:
+                await ctx.channel.send(embed=the_embed)
+        except Exception as e:
+            await ctx.channel.send(f"Failed to run command. {e}")
 
 # @bot.command()
 # async def region(ctx, *args):

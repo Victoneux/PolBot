@@ -1,11 +1,11 @@
 import PIL, common, os, math, random, json
 from copy import deepcopy
 from PIL import Image, ImageDraw, ImageFont
+import numpy as np
 Image.MAX_IMAGE_PIXELS = None
 
 def get_nation_dict(): # Returns a dictionary with the region ID being the key, and a list of coordinates of every pixel in the region is returned.
     nation_dict = {}
-    color_dict = {}
 
     nations = os.listdir("./common/nations/")
     for nation in nations:
@@ -19,22 +19,17 @@ def get_nation_dict(): # Returns a dictionary with the region ID being the key, 
             nation_dict[nation]["regions"][region] = {}
             for key in list(region_info[region].keys()):
                 nation_dict[nation]["regions"][region][key] = region_info[region][key]
-        
             nation_dict[nation]["regions"][region]["color"] = tuple(nation_dict[nation]["regions"][region]["color"])
-            color_dict[nation_dict[nation]["regions"][region]["color"]] = (nation,region)
-    
-    region_map = Image.open("./map/inputs/map.png").convert("RGB")
-    image_dat = region_map.load()
-    width, height = region_map.size
 
-    for h in range(height):
-        for w in range(width):
-            pR, pG, pB = image_dat[w,h]
-            if (pR,pG,pB) != (0,0,0) and (pR,pG,pB) != (255,255,255):
-                if "pixels" not in list(nation_dict[color_dict[(pR,pG,pB)][0]]["regions"][color_dict[(pR,pG,pB)][1]].keys()):
-                    nation_dict[color_dict[(pR,pG,pB)][0]]["regions"][color_dict[(pR,pG,pB)][1]]['pixels'] = []
-                nation_dict[color_dict[(pR,pG,pB)][0]]["regions"][color_dict[(pR,pG,pB)][1]]["pixels"].append((w,h)) ## Add the pixel to the nation's region's dict's list.
-    region_map.close()
+    for nation in list(nation_dict.keys()):
+        for region in list(nation_dict[nation]["regions"].keys()):
+            region_color = nation_dict[nation]["regions"][region]["color"]
+            color_int = common.rgb_to_int(region_color)
+            where = np.where(common.np_dot == color_int)
+            coords = list(zip(where[0],where[1]))
+            nation_dict[nation]["regions"][region]["pixels"] = coords
+            nation_dict[nation]["regions"][region]["pixels unzipped"] = where
+
     return nation_dict
 
 def draw_nation(nation, pixel_array, do_light):
