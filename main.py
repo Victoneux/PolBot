@@ -7,7 +7,7 @@ from discord.ext import commands
 
 common.initialize()
 TOKEN = open("token.code", "r").read().strip()
-mappingThread = None
+mapping_thread = None
 timeThread = Thread(target=timez.timeTick, args=())
 timeThread.start()
 
@@ -16,7 +16,6 @@ print("Booted!")
 
 @bot.command()
 async def regions(ctx, *args):
-    regions = list(common.regionClassDict.keys())
     if len(args) < 1:
         await ctx.channel.send("List regions of a nation. .regions (nation)")
     else:
@@ -25,8 +24,8 @@ async def regions(ctx, *args):
             text += arg + " "
         nation = text.lower().strip()
         try:
-            nation = common.nationClassDict[nation]
-            regions = nation.regions
+            nation_info = common.nation_dict[nation]
+            regions = nation_info["regions"]
             string = ""
             for region in regions:
                 thing = region.name
@@ -35,143 +34,154 @@ async def regions(ctx, *args):
         except Exception as e:
             await ctx.channel.send("Failed to run.")
             print(e)
+
 @bot.command()
 async def nations(ctx):
-    nations = list(common.nationClassDict.keys())
-    tempNationDict = {}
-    string = ""
-    for r in range(len(nations)):
-        tempNationDict[nations[r]] = common.nationClassDict[nations[r]].area
-    thing = {key: val for key, val in sorted(tempNationDict.items(), key=lambda ele: ele[1], reverse = True)}
-    for gah in thing.keys():
-        string += "> " + gah + " - " + str(int(thing[gah])) + " km²\n"
-    await ctx.channel.send(string)
-
-@bot.command()
-async def nation(ctx, *args):
-    if len(args) == 0:
-        await ctx.channel.send("> Read a nation.")
-    else:
-        text = ""
-        for arg in args:
-            text += arg.strip() + " "
-        try:
-            await ctx.channel.send(embed=common.nationClassDict[text.lower().strip()].embed())
-        except:
-            await ctx.channel.send("Failed to run command.")
-
-@bot.command()
-async def region(ctx, *args):
-    if len(args) == 0:
-        await ctx.channel.send("> Read region info.")
-    else:
-        try:
-            await ctx.channel.send(embed=common.regionClassDict[args[0].lower().strip()].embed())
-        except:
-            await ctx.channel.send("Failed to run command.")
-
-@bot.command()
-async def area(ctx, *args):
-    if len(args) == 0:
-        await ctx.channel.send("> Get the area of a region or nation. .area [region (nation/region)]/[nation (nation)]")
-    elif len(args) == 1:
-        await ctx.channel.send(str(int(common.nationClassDict[args[0].strip().lower()].area)) + " km²")
-    elif len(args) == 2:
-        if args[0].lower() == "region":
-            await ctx.channel.send(str(int(common.regionClassDict[args[1].strip().lower()].area)) + " km²")
-        elif args[0].lower() == "nation":
-            await ctx.channel.send(str(int(common.nationClassDict[args[1].strip().lower()].area)) + " km²")
+    nations = list(common.nation_dict.keys())
+    nation_count = len(nations)
+    do_loop = True
+    done_once = False
+    while do_loop:
+        if not done_once:
+            string = "***[code] Nation - Area ***\n"
+            done_once = True
         else:
-            await ctx.channel.send("Invalid syntax. area [region/nation] (name)")
+            string = ""
+        while len(string) < 1900 and len(nations) > 0:
+            nation = nations.pop(0)
+            string += f"> [{nation}] **{common.nation_dict[nation]['short name']}** - {str(int(common.get_nation_area(nation)))} km²\n"
+        if len(nations) == 0:
+            string += f"***{nation_count} total nations.***"
+            do_loop = False
+        await ctx.channel.send(string)
 
 @bot.command()
-async def find_adjacencies(ctx):
-    global mappingThread
-    if str(ctx.message.author.id) == "742193269655601272":
-        if mappingThread != None:
-            if not mappingThread.is_alive():
-                mappingThread = Thread(target=common.writeAdjacencies, args=())
-                mappingThread.start()
-                await ctx.channel.send("Writing adjacencies! This may take a while.")
+async def planets(ctx):
+    main_planet = common.system_info['main planet']
+    planets = list(common.planet_dict.keys())
+    planet_count = len(planets)
+    do_loop = True
+    while do_loop:
+        string = ""
+        while len(string) < 1900 and len(planets) > 0:
+            planet = planets.pop(0)
+            if planet == main_planet:
+                string += f"> __**{common.planet_dict[planet]['name']}**__ - {common.planet_dict[planet]['short description']}\n"
             else:
-                await ctx.channel.send("The mapping thread is busy! Try again in a bit.")
-        else:
-            mappingThread = Thread(target=common.writeAdjacencies, args=())
-            mappingThread.start()
-            await ctx.channel.send("Writing adjacencies! This may take a while.")
-    else:
-        await ctx.channel.send("Usable by vic only.")
+                string += f"> **{common.planet_dict[planet]['name']}** - {common.planet_dict[planet]['short description']}\n"
+        if len(planets) == 0:
+            string += f"***{planet_count} total planets.***"
+            do_loop = False
+        await ctx.channel.send(string)
+
+
+# @bot.command()
+# async def nation(ctx, *args):
+#     if len(args) == 0:
+#         await ctx.channel.send("> Read a nation.")
+#     else:
+#         text = ""
+#         for arg in args:
+#             text += arg.strip() + " "
+#         try:
+#             await ctx.channel.send(embed=common.nationClassDict[text.lower().strip()].embed())
+#         except:
+#             await ctx.channel.send("Failed to run command.")
+
+# @bot.command()
+# async def region(ctx, *args):
+#     if len(args) == 0:
+#         await ctx.channel.send("> Read region info.")
+#     else:
+#         try:
+#             await ctx.channel.send(embed=common.regionClassDict[args[0].lower().strip()].embed())
+#         except:
+#             await ctx.channel.send("Failed to run command.")
+
+# @bot.command()
+# async def area(ctx, *args):
+#     if len(args) == 0:
+#         await ctx.channel.send("> Get the area of a region or nation. .area [region (nation/region)]/[nation (nation)]")
+#     elif len(args) == 1:
+#         await ctx.channel.send(str(int(common.nationClassDict[args[0].strip().lower()].area)) + " km²")
+#     elif len(args) == 2:
+#         if args[0].lower() == "region":
+#             await ctx.channel.send(str(int(common.regionClassDict[args[1].strip().lower()].area)) + " km²")
+#         elif args[0].lower() == "nation":
+#             await ctx.channel.send(str(int(common.nationClassDict[args[1].strip().lower()].area)) + " km²")
+#         else:
+#             await ctx.channel.send("Invalid syntax. area [region/nation] (name)")
 
 @bot.command()
 async def generatepolmap(ctx, *args):
-    addNames = False
+    add_background = False
     if (len(args) > 0):
-        if args[0] == "names":
-            addNames = True
-    global mappingThread
+        if args[0] == "background":
+            add_background = True
+    global mapping_thread
     if str(ctx.message.author.id) == "742193269655601272":
-        if mappingThread != None:
-            if not mappingThread.is_alive():
+        if mapping_thread != None:
+            if not mapping_thread.is_alive():
                 await ctx.channel.send("> Generating. Please note this may take a while. Additional \'heavy\' commands should not be run in the mean time.")
-                mappingThread = Thread(target=mapping.drawPolitical, args=(addNames,))
-                mappingThread.start()
+                mapping_thread = Thread(target=mapping.draw_political, args=(add_background,))
+                mapping_thread.start()
             else:
                 await ctx.channel.send("> There is an active thread. Please try again later!")
         else:
             await ctx.channel.send("> Generating. Please note this may take a while. Additional \'heavy\' commands should not be run in the mean time.")
-            mappingThread = Thread(target=mapping.drawPolitical, args=(addNames,))
-            mappingThread.start()
+            mapping_thread = Thread(target=mapping.draw_political, args=(add_background,))
+            mapping_thread.start()
     else:
         await ctx.channel.send("> You are not our godly administrator! SHAME!")
 
-@bot.command()
-async def reinitialize(ctx):
-    if str(ctx.message.author.id) == "742193269655601272":
-        await ctx.channel.send("Reinitializing. The bot will not function in the mean time.")
-        timez.saveTime()
-        common.initialize()
-    else:
-        await ctx.channel.send("You can't do that. NO.")
+# @bot.command()
+# async def reinitialize(ctx):
+#     if str(ctx.message.author.id) == "742193269655601272":
+#         await ctx.channel.send("Reinitializing. The bot will not function in the mean time.")
+#         timez.saveTime()
+#         common.initialize()
+#     else:
+#         await ctx.channel.send("You can't do that. NO.")
 
-@bot.command()
-async def getarea(ctx, *args):
-    if len(args) < 2:
-        await ctx.channel.send("> Calculate the area of something. Syntax: .getarea (nation/region) (nationName/regionName)")
-    else:
-        action = args[0].strip().lower()
-        place = args[1].strip().lower()
-        if action == "nation":
-            await ctx.channel.send("Nation " + place + " has area " + str(int(mapping.calculateNationArea(place, common.provinceDict))) + " km²")
-        elif action == "region":
-            await ctx.channel.send("Region " + place + " has area " + str(int(mapping.calculateRegionArea(place, common.provinceDict))) + " km²")
+# @bot.command()
+# async def area(ctx, *args):
+#     if len(args) < 2:
+#         await ctx.channel.send("> Calculate the area of something. Syntax: .area (nation) (region)")
+#     else:
+#         action = args[0].strip().lower()
+#         place = args[1].strip().lower()
+#         if action == "nation":
+#             await ctx.channel.send("Nation " + place + " has area " + str(int(mapping.calculateNationArea(place, common.provinceDict))) + " km²")
+#         elif action == "region":
+#             await ctx.channel.send("Region " + place + " has area " + str(int(mapping.calculateRegionArea(place, common.provinceDict))) + " km²")
 
-@bot.command()
-async def dice(ctx, *args):
-    if len(args) <= 0:
-        await ctx.channel.send("> Rolling a 20 siced dice. Result: " + str(random.randrange(1,21)))
-    if len(args) == 1:
-        try:
-            sides = int(args[0].strip())
-            await ctx.channel.send("> Rolling a " + str(sides) + " sided dice. Result: " + str(random.randrange(1,sides+1)))
-        except:
-            await ctx.channel.send("> Failed. Did you input a number?")
+# @bot.command()
+# async def dice(ctx, *args):
+#     if len(args) <= 0:
+#         await ctx.channel.send("> Rolling a 20 siced dice. Result: " + str(random.randrange(1,21)))
+#     if len(args) == 1:
+#         try:
+#             sides = int(args[0].strip())
+#             await ctx.channel.send("> Rolling a " + str(sides) + " sided dice. Result: " + str(random.randrange(1,sides+1)))
+#         except:
+#             await ctx.channel.send("> Failed. Did you input a number?")
 
 @bot.command()
 async def ping(ctx, *args):
     space = ""
-    tosend = ""
+    to_send = ""
     if len(args) > 0:
         for i in range(len(args)):
             if args[i].strip().lower() == "ping":
                 if i == len(args)-1:
-                    tosend += "pong"
+                    to_send += "pong"
                     space = " "
                 else:
-                    tosend += "pong "
+                    to_send += "pong "
                     space = " "
     else:
-        tosend = ""
-    await ctx.channel.send("pong" + space + tosend + "!")
+        to_send = ""
+    await ctx.channel.send("pong" + space + to_send + "!")
 
 @bot.command()
 async def time(ctx):
@@ -195,11 +205,11 @@ async def rate(ctx, *args):
         else:
             await ctx.channel.send("You are not the godly admin!")
 
-@bot.command()
-async def random_nation(ctx):
-    nations = list(common.nationClassDict.keys())
-    nation = random.choice(nations)
-    await ctx.channel.send(nation)
+# @bot.command()
+# async def random_nation(ctx):
+#     nations = list(common.nationClassDict.keys())
+#     nation = random.choice(nations)
+#     await ctx.channel.send(nation)
 
 bot.run(TOKEN)
 timez.saveTime()

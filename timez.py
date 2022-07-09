@@ -31,8 +31,13 @@ def setRate(rate):
 
 def timeTick():
     global currentTime
+    time_passed = 0
     while doLoop:
         t.sleep(1)
+        time_passed += currentRate
+        if time_passed > 14400:
+            time_passed = 0
+            saveTime()
         currentTime += datetime.timedelta(seconds=currentRate)
 
 print(getTime())

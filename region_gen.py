@@ -40,4 +40,4 @@ g = open(f"common/regions/new_regions/{name.lower()}.txt", "w")
 g.writelines(lines)
 g.close()
 
-os.system(f"echo '{color}' | xclip -select clipboard")
+os.system(f"wl-copy {color}")
