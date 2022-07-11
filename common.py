@@ -55,12 +55,12 @@ def initialize():
     print("Successfully initiated! :)")
 
 def calculate_area(pixels): ## Use some fancy equirectangular math to calculate the area of a set of pixels based on the area of each individual pixels.
-
+    pixels_y = []
     radius = get_main_planet_radius() / 1000
 
     for pixel_num in range(len(pixels)):
-        pixels[pixel_num] = pixels[pixel_num][1]
-    unique_vals = np.unique(pixels, return_counts=True)
+        pixels_y.append(pixels[pixel_num][1])
+    unique_vals = np.unique(pixels_y, return_counts=True)
 
     half_height = map_height/2
     half_pi = math.pi/2
@@ -135,6 +135,14 @@ def rgb_to_int(rgb):
     g = rgb[1]
     b = rgb[2]
     return (b << 16) + (g << 8) + (r << 0)
+
+def int_to_rgb(num):
+    g = num >> 16
+    num = num - (g << 16)
+    b = num >> 8
+    num = num - (b << 8)
+
+    return (num,g,b)
 
 def get_main_planet_radius():
     main_planet = system_info["main planet"]

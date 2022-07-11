@@ -27,7 +27,7 @@ def get_nation_dict(): # Returns a dictionary with the region ID being the key, 
     for color in region_colors:
         color_dict[color] = []
 
-    print(len(color_dict.keys()))
+    print(f"{len(color_dict.keys())} regions detected . . .")
 
     white_int = common.rgb_to_int((255,255,255))
     black_int = 0
@@ -60,6 +60,7 @@ def draw_nation(nation, pixel_array):
         region = nation_regions[region_num]
         region_info = nation_info["regions"][region]
         for pixel in region_info["pixels"]:
+
             nation_pixels.append(pixel)
             if pixel[0] > common.map_width:
                 print("X greater than map width", pixel)

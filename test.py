@@ -1,14 +1,12 @@
-import numpy as np
-from PIL import Image
-Image.MAX_IMAGE_PIXELS = None
+num = (180 << 16) + (170 << 8) + (160 << 0)
 
-the_map = Image.open("./map/inputs/map.png").convert('RGB')
-map_data = the_map.load()
-map_width, map_height = the_map.size
-np_array = np.array(the_map)
-np_dot = np.dot(np_array.astype(np.uint32),[1,256,65536])
+print(num)
 
-unique, indices = np.unique(np_array, return_index=True)
-print(unique)
+g = num >> 16
+num = num - (g << 16)
+b = num >> 8
+num = num - (b << 8)
 
-print(np_array[indices])
+print(g)
+print(b)
+print(num)
