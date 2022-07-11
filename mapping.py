@@ -6,6 +6,7 @@ Image.MAX_IMAGE_PIXELS = None
 
 def get_nation_dict(): # Returns a dictionary with the region ID being the key, and a list of coordinates of every pixel in the region is returned.
     nation_dict = {}
+    region_colors = []
 
     nations = os.listdir("./common/nations/")
     for nation in nations:
@@ -20,19 +21,32 @@ def get_nation_dict(): # Returns a dictionary with the region ID being the key, 
             for key in list(region_info[region].keys()):
                 nation_dict[nation]["regions"][region][key] = region_info[region][key]
             nation_dict[nation]["regions"][region]["color"] = tuple(nation_dict[nation]["regions"][region]["color"])
+            region_colors.append(common.rgb_to_int(tuple(nation_dict[nation]["regions"][region]["color"])))
+
+    color_dict = {}
+    for color in region_colors:
+        color_dict[color] = []
+
+    print(len(color_dict.keys()))
+
+    white_int = common.rgb_to_int((255,255,255))
+    black_int = 0
+    for y in range(len(common.np_dot)):
+        for x in range(len(common.np_dot[0])):
+            value = common.np_dot[y][x]
+            if value != white_int and value != black_int:
+                color_dict[value].append((x,y))
 
     for nation in list(nation_dict.keys()):
         for region in list(nation_dict[nation]["regions"].keys()):
             region_color = nation_dict[nation]["regions"][region]["color"]
             color_int = common.rgb_to_int(region_color)
-            where = np.where(common.np_dot == color_int)
-            coords = list(zip(where[0],where[1]))
+            coords = color_dict[color_int]
             nation_dict[nation]["regions"][region]["pixels"] = coords
-            nation_dict[nation]["regions"][region]["pixels unzipped"] = where
 
     return nation_dict
 
-def draw_nation(nation, pixel_array, do_light):
+def draw_nation(nation, pixel_array):
     nation_info = common.nation_dict[nation]
     print("Drawing nation: " + nation_info["short name"])
     
@@ -47,32 +61,37 @@ def draw_nation(nation, pixel_array, do_light):
         region_info = nation_info["regions"][region]
         for pixel in region_info["pixels"]:
             nation_pixels.append(pixel)
+            if pixel[0] > common.map_width:
+                print("X greater than map width", pixel)
+                exit("X greater than map width")
+            if pixel[1] > common.map_height:
+                print("Y greater than map height", pixel)
+                exit("Y greater than map height")
             pixel_array[pixel[0]][pixel[1]] = (0,0,region_num) ## Using this method limits each nation to 255 regions.
         
         print(f"{nation}-{region_info['short name']}: {len(region_info['pixels'])} pixels")
         
         # LIGHT BORDERS GEN
-        if do_light:
-            for px in region_info["pixels"]:
-                check = True
-                for j in range(-1,2):
-                    if check:
-                        for k in range(-1,2):
-                            if not (j == 0 and k == 0):
-                                x = pxl[0]+j
-                                y = pxl[1]+k
-                                if x >= common.map_width:
-                                    x = 0
-                                elif x < 0:
-                                    x = common.map_width-1
+        for pxl in region_info["pixels"]:
+            check = True
+            for j in range(-1,2):
+                if check:
+                    for k in range(-1,2):
+                        if not (j == 0 and k == 0):
+                            x = pxl[0]+j
+                            y = pxl[1]+k
+                            if x >= common.map_width:
+                                x = 0
+                            elif x < 0:
+                                x = common.map_width-1
 
-                                if not (y < 0 or y >= common.map_height):
-                                    if pixel_array[x][y] != (0,0,region_num):
-                                        light_borders.append((pxl[0],pxl[1]))
-                                        break
-                    else:
-                        break
-    print(f"{nation}-{region_info['short name']}: Done with region loop!")
+                            if not (y < 0 or y >= common.map_height):
+                                if pixel_array[x][y] != (0,0,region_num):
+                                    light_borders.append((pxl[0],pxl[1]))
+                                    break
+                else:
+                    break
+    print(f"{nation}: Done with region loop!")
     light_borders = list(dict.fromkeys(light_borders)) ## Remove Duplicates.
 
     for pxl in nation_pixels:
@@ -97,10 +116,7 @@ def draw_nation(nation, pixel_array, do_light):
     heavy_borders = list(dict.fromkeys(heavy_borders))
     sea_borders = list(dict.fromkeys(sea_borders))
     
-    if not do_light:
-        light_count = 0
-    else:
-        light_count = len(light_borders)-len(heavy_borders)
+    light_count = len(light_borders)-len(heavy_borders)
     heavy_count = len(heavy_borders)-len(sea_borders)
     sea_count = len(sea_borders)
     normal_count = len(nation_pixels)-sea_count-heavy_count-light_count
@@ -137,7 +153,7 @@ def draw_political(add_background):
         light_color = (int(color[0]*.75),int(color[1]*.75),int(color[2]*.75))
         heavy_color = (int(color[0]*.5),int(color[1]*.5),int(color[2]*.5))
         sea_color = (int(color[0]*.2),int(color[1]*.2),int(color[2]*.2))
-        light, heavy, sea = draw_nation(nation,pixel_array,False)
+        light, heavy, sea = draw_nation(nation,pixel_array)
         for i in pixels:
             img_dat[i[0],i[1]] = color
         for i in light:

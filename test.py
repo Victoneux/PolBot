@@ -1,24 +1,14 @@
-from PIL import Image
 import numpy as np
+from PIL import Image
 Image.MAX_IMAGE_PIXELS = None
 
-thing = Image.open("./map/inputs/map.png").convert("RGB")
-ar = np.array(thing)
+the_map = Image.open("./map/inputs/map.png").convert('RGB')
+map_data = the_map.load()
+map_width, map_height = the_map.size
+np_array = np.array(the_map)
+np_dot = np.dot(np_array.astype(np.uint32),[1,256,65536])
 
-f = np.dot(ar.astype(np.uint32),[1,256,65536])
+unique, indices = np.unique(np_array, return_index=True)
+print(unique)
 
-
-
-where = np.where(f == 12498090)
-
-coords = list(zip(where[0],where[1]))
-
-print(where[0])
-
-r = 170
-g = 180
-b = 190
-
-bgr = (b << 16) + (g << 8) + (r << 0)
-
-print(bgr)
+print(np_array[indices])

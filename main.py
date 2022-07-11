@@ -21,19 +21,25 @@ async def regions(ctx, *args):
     else:
         text = ""
         for arg in args:
-            text += arg + " "
-        nation = text.lower().strip()
-        try:
-            nation_info = common.nation_dict[nation]
-            regions = nation_info["regions"]
-            string = ""
-            for region in regions:
-                thing = region.name
-                string += "> " + thing + "\n"
+            text += arg.strip() + " "
+        text = text.strip()
+        regions = list(common.nation_dict[text]["regions"].keys())
+        region_count = len(regions)
+        do_loop = True
+        done_once = False
+        while do_loop:
+            if not done_once:
+                string = "***[code] Region - Area ***\n"
+                done_once = True
+            else:
+                string = ""
+            while len(string) < 1900 and len(regions) > 0:
+                region = regions.pop(0)
+                string += f"> [{region}] **{common.nation_dict[text]['regions'][region]['short name']}** - {int(common.nation_dict[text]['regions'][region]['area']):,d} km²\n"
+            if len(regions) == 0:
+                string += f"***{region_count} total regions for nation {common.nation_dict[text]['short name']}.***"
+                do_loop = False
             await ctx.channel.send(string)
-        except Exception as e:
-            await ctx.channel.send("Failed to run.")
-            print(e)
 
 @bot.command()
 async def nations(ctx):
@@ -49,7 +55,7 @@ async def nations(ctx):
             string = ""
         while len(string) < 1900 and len(nations) > 0:
             nation = nations.pop(0)
-            string += f"> [{nation}] **{common.nation_dict[nation]['short name']}** - {str(int(common.get_nation_area(nation)))} km²\n"
+            string += f"> [{nation}] **{common.nation_dict[nation]['short name']}** - {int(common.get_nation_area(nation)):,d} km²\n"
         if len(nations) == 0:
             string += f"***{nation_count} total nations.***"
             do_loop = False
@@ -73,7 +79,6 @@ async def planets(ctx):
             do_loop = False
         await ctx.channel.send(string)
 
-
 @bot.command()
 async def nation(ctx, *args):
     if len(args) == 0:
@@ -89,6 +94,26 @@ async def nation(ctx, *args):
                 flag = discord.File(f"./common/nations/{text}/flag.png", filename="flag.png")
                 the_embed.set_thumbnail(url="attachment://flag.png")
                 await ctx.channel.send(file=flag, embed=the_embed)
+            else:
+                await ctx.channel.send(embed=the_embed)
+        except Exception as e:
+            await ctx.channel.send(f"Failed to run command. {e}")
+
+@bot.command()
+async def planet(ctx, *args):
+    if len(args) == 0:
+        await ctx.channel.send("> Read a planet.")
+    else:
+        text = ""
+        for arg in args:
+            text += arg.strip() + " "
+        text = text.strip()
+        try:
+            the_embed = common.generate_planet_embed(text)
+            if common.planet_dict[text]["has render"] == True:
+                render = discord.File(f"./common/planets/{text}/render.png", filename="render.png")
+                the_embed.set_thumbnail(url="attachment://render.png")
+                await ctx.channel.send(file=render, embed=the_embed)
             else:
                 await ctx.channel.send(embed=the_embed)
         except Exception as e:

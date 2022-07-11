@@ -5,7 +5,7 @@ import numpy as np
 Image.MAX_IMAGE_PIXELS = None
 
 def initialize():
-    global nation_dict, planet_dict, system_info, map_width, map_height, the_map, map_data, np_dot
+    global nation_dict, planet_dict, system_info, map_width, map_height, the_map, map_data, np_dot, np_array
     print("Loading . . .")
     the_map = Image.open("./map/inputs/map.png").convert('RGB')
     map_data = the_map.load()
@@ -24,10 +24,14 @@ def initialize():
         path = f"./common/planets/{planet}"
         if os.path.isdir(path):
             planet_dict[planet] = {}
+            if os.path.exists(f"./common/planets/{planet}/render.png"):
+                planet_dict[planet]["has render"] = True
+            else:
+                planet_dict[planet]["has render"] = False
             planet_info = json.load(open(f"{path}/info.json"))
             for key in list(planet_info.keys()):
                 planet_dict[planet][key] = planet_info[key]
-            planet_info["surface gravity"] = calculate_gravity(planet_info["mass base"],planet_info["mass factor"],planet_info["radius"])
+            planet_dict[planet]["surface gravity"] = calculate_gravity(planet_info["mass base"],planet_info["mass factor"],planet_info["radius"])
 
     print("Done getting planet dict . . .")
 
@@ -38,26 +42,25 @@ def initialize():
             nation_dict[nation]["has flag"] = False
         regions = nation_dict[nation]["regions"]
         for region in list(regions.keys()):
-            pixels_unzipped = nation_dict[nation]["regions"][region]["pixels unzipped"]
             pixels = nation_dict[nation]["regions"][region]["pixels"]
-
-            area = calculate_area(pixels_unzipped)
+            area = calculate_area(pixels)
             nation_dict[nation]["regions"][region]["area"] = area
+        nation_dict[nation]["area"] = get_nation_area(nation)
+
+    sorted_list = sorted(nation_dict.items(), key=lambda x:x[1]["area"], reverse=True)
+    nation_dict = dict(sorted_list)
 
     print("Done with area calculations . . .")
 
     print("Successfully initiated! :)")
 
-def calculate_area(pixels_unzipped): ## Use some fancy equirectangular math to calculate the area of a set of pixels based on the area of each individual pixels.
+def calculate_area(pixels): ## Use some fancy equirectangular math to calculate the area of a set of pixels based on the area of each individual pixels.
 
-    print("Starting area calculation . . .")
-    radius = get_main_planet_radius()
+    radius = get_main_planet_radius() / 1000
 
-    y_coords = pixels_unzipped[0]
-
-    unique_vals = np.unique(y_coords,return_counts=True)
-
-    print("Got unique vals . . .")
+    for pixel_num in range(len(pixels)):
+        pixels[pixel_num] = pixels[pixel_num][1]
+    unique_vals = np.unique(pixels, return_counts=True)
 
     half_height = map_height/2
     half_pi = math.pi/2
@@ -70,8 +73,9 @@ def calculate_area(pixels_unzipped): ## Use some fancy equirectangular math to c
         count = unique_vals[1][i]
         y_new = ((y-half_height)/half_height)*half_pi
         decimal_area = np.cos(y_new)
-        totArea += pow(pixel_equator,2) * count * decimal_area
-
+        to_add = ((pixel_equator**2)* count * decimal_area)
+        totArea += to_add
+    
     return totArea
 
 def get_nation_pixels(nation): ## Get the pixels of a nation.
@@ -91,9 +95,9 @@ def get_nation_area(nation): ## Get the area of a nation.
 
 def calculate_gravity(mass_base, mass_factor, distance):
     mass = mass_base*pow(10,mass_factor)
-    G = 6.67*pow(10,11)
+    G = 6.67e-11
     acceleration = (G*mass)/(distance*distance)
-    return acceleration
+    return round(acceleration, 2)
 
 def generate_nation_embed(nation):
     try:
@@ -104,6 +108,20 @@ def generate_nation_embed(nation):
             color = rgb_to_hex(tuple(nation_info["color"]))
         )
         the_embed.add_field(name="Area", value=f"{int(get_nation_area(nation)):,d} km²", inline=True)
+        return the_embed
+    except Exception as e:
+        print(e)
+        return ""
+
+def generate_planet_embed(planet):
+    try:
+        planet_info = planet_dict[planet]
+        the_embed = discord.Embed(
+            title = planet_info["name"],
+            description = planet_info["description"],
+            color = rgb_to_hex(tuple(planet_info["color"]))
+        )
+        the_embed.add_field(name="Surface Gravity", value=f"{planet_info['surface gravity']} m/s²", inline=True)
         return the_embed
     except Exception as e:
         print(e)
